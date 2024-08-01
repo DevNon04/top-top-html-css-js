@@ -380,16 +380,15 @@
     }
 </script>
 
-
 <script type="text/javascript">
     document.getElementById('loadButton').addEventListener('click', async () => {
         const videoUrl = document.getElementById('urlInput').value.trim();
-        const loading = document.getElementById("loading")
+        const loading = document.getElementById("loading");
         if (!videoUrl) {
             alert('Vui lòng nhập URL video TikTok.');
             return;
         }
-        loading.style.display = "flex"
+        loading.style.display = "flex";
 
         try {
             const response = await fetch('https://snapdouyin.app/wp-json/aio-dl/video-data/', {
@@ -397,7 +396,7 @@
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: new URLSearchParams({ url:videoUrl }),
+                body: new URLSearchParams({ url: videoUrl }),
             });
 
             if (!response.ok) throw new Error('Network response was not ok');
@@ -413,14 +412,66 @@
 
             const mediaList = document.getElementById('mediaList');
             mediaList.innerHTML = '';
-            console.log(data.medias)
+
             data.medias.forEach(media => {
                 const downloadButton = document.createElement('button');
                 downloadButton.className = 'downloadButton';
-                downloadButton.classList.add("btnDownload")
-                downloadButton.textContent = `Download ${media.quality.toUpperCase()} (${media.formattedSize})`;
-                downloadButton.onclick = () => {
-                    window.open(media.url, '_blank');
+                downloadButton.classList.add("btnDownload");
+                downloadButton.textContent = `Download ${media.quality.toUpperCase() !== "128KBPS" ? media.quality.toUpperCase() : media.extension.toUpperCase()} (${media.formattedSize})`;
+                downloadButton.onclick = async () => {
+                    const infoContainer = document.getElementById('infoContainer');
+                    const progress = document.createElement('progress');
+                    progress.max = 100;
+                    progress.value = 0;
+                    const progressText = document.createElement('span');
+                    infoContainer.appendChild(progress);
+                    infoContainer.appendChild(progressText);
+
+                    try {
+                        const mediaResponse = await fetch(media.url);
+                        if (!mediaResponse.ok) throw new Error('Failed to download media');
+
+                        const reader = mediaResponse.body.getReader();
+                        const contentLength = +mediaResponse.headers.get('Content-Length');
+                        let receivedLength = 0; // received that many bytes at the moment
+                        const chunks = []; // array of received binary chunks (comprises the body)
+
+                        while (true) {
+                            const {done, value} = await reader.read();
+                            if (done) break;
+
+                            chunks.push(value);
+                            receivedLength += value.length;
+
+                            const percentComplete = (receivedLength / contentLength) * 100;
+                            progress.value = percentComplete;
+
+                            const receivedMB = (receivedLength / (1024 * 1024)).toFixed(2);
+                            const totalMB = (contentLength / (1024 * 1024)).toFixed(2);
+                            progressText.textContent = ` ${percentComplete.toFixed(2)}% (${receivedMB} MB / ${totalMB} MB)`;
+                        }
+
+                        const blob = new Blob(chunks);
+                        console.log(blob)
+                        const tempLink = document.createElement('a');
+                        tempLink.href = URL.createObjectURL(blob);
+                        if (media.extension==="mp3"){
+                            tempLink.download = `${data.title}.mp3`; // Optional: set a default filename
+
+                        }else {
+                            tempLink.download = `${data.title}.mp4`; // Optional: set a default filename
+                        }
+                        document.body.appendChild(tempLink);
+                        tempLink.click();
+                        document.body.removeChild(tempLink);
+                        infoContainer.removeChild(progress);
+                        infoContainer.removeChild(progressText);
+                    } catch (downloadError) {
+                        console.error('Error downloading the media:', downloadError);
+                        alert('Lỗi khi tải video. Vui lòng thử lại.');
+                        infoContainer.removeChild(progress);
+                        infoContainer.removeChild(progressText);
+                    }
                 };
                 mediaList.appendChild(downloadButton);
             });
@@ -428,37 +479,37 @@
             console.error('Error fetching the video:', error);
             alert('Lỗi khi tải video. Vui lòng kiểm tra URL.');
         } finally {
-            loading.style.display = "none"
+            loading.style.display = "none";
         }
     });
 
     document.getElementById("clear").addEventListener("click", () => {
-        const input = document.getElementById("urlInput")
+        const input = document.getElementById("urlInput");
         if (input.value !== "") {
-            input.value = ""
+            input.value = "";
         }
-    })
+    });
     document.getElementById("paste").addEventListener("click", (function (e) {
         e.preventDefault(), navigator.clipboard.readText().then((e => {
-            "" === e.trim() ? console.log("Website không cho phép quyền paste.") : document.getElementById("urlInput").value = e
+            "" === e.trim() ? console.log("Website không cho phép quyền paste.") : document.getElementById("urlInput").value = e;
         })).catch((e => {
-            "NotAllowedError" !== e.name && console.error("Failed to read clipboard contents: ", e)
-        }))
-    }))
+            "NotAllowedError" !== e.name && console.error("Failed to read clipboard contents: ", e);
+        }));
+    }));
 
     const showMenu = (e, n) => {
         const t = document.getElementById(e), o = document.getElementById(n), a = document.getElementById("createQr"),
             s = document.getElementById("loading2"), c = document.getElementById("img_default");
         t.addEventListener("click", (() => {
-            o.classList.toggle("show-menu")
-            a.style.position = "initial"
-            s.style.display = "none"
-            c.style.opacity = 1
-            t.classList.toggle("show-icon")
-            console.log(typeof t.className)
-            console.log(t.className)
-            "nav__toggle" === t.className && (c.style.opacity = .1)
-        }))
+            o.classList.toggle("show-menu");
+            a.style.position = "initial";
+            s.style.display = "none";
+            c.style.opacity = 1;
+            t.classList.toggle("show-icon");
+            console.log(typeof t.className);
+            console.log(t.className);
+            "nav__toggle" === t.className && (c.style.opacity = .1);
+        }));
     };
     showMenu("nav-toggle", "nav-menu");
     const acc = document.getElementsByClassName("accordion");
@@ -466,8 +517,9 @@
     for (i = 0; i < acc.length; i++) acc[i].addEventListener("click", (function () {
         this.classList.toggle("active");
         const e = this.nextElementSibling;
-        e.style.maxHeight ? e.style.maxHeight = null : e.style.maxHeight = e.scrollHeight + "px"
+        e.style.maxHeight ? e.style.maxHeight = null : e.style.maxHeight = e.scrollHeight + "px";
     }));
 </script>
+
 </body>
 </html>
