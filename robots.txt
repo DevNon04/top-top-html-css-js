@@ -1,5 +1,0 @@
-Sitemap: https://snaptikdownloader.pages.dev/sitemap.xml
-User-agent: *
-Disallow: */support$
-Disallow: */terms$
-Disallow: */privacy$
